@@ -4,11 +4,7 @@ import boto3
 import os
 from datetime import datetime
 
-
-test_config_path = r"C:\Users\Tino\Desktop\playground\config"
-
-real_config_path = os.path.dirname(os.path.realpath(__file__)) + r"\config"
-
+config_path = os.path.dirname(os.path.realpath(__file__)) + r"\config"
 
 def get_config_info(config_path: str):
 
@@ -22,7 +18,6 @@ def get_config_info(config_path: str):
     log_path = parser["Structure-info"]["log_folder"]
     
     return None
-
 
 def send_files_to_s3(dump_path: str):
 
@@ -54,11 +49,10 @@ def send_files_to_s3(dump_path: str):
     if f_count == 0:
         logging.info(f"{datetime.now()}: No files to dump.")
 
-get_config_info(test_config_path)
+get_config_info(config_path)
 
 # Setting up logging
 log_file_path = log_path + r"\logs.log"
 logging.basicConfig(filename =  log_file_path, level = logging.INFO)
-
 
 send_files_to_s3(dump_folder_path)
