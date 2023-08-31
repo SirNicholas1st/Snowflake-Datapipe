@@ -170,3 +170,4 @@ config
 dump
 logs
 temp
+plugins
