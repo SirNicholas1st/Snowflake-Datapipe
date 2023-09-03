@@ -1,3 +1,4 @@
+-- These SQL commands are responsible for creating the snowpipe from start to finish.
 
 CREATE DATABASE IF NOT EXISTS "OPEN-METEO";
 USE DATABASE "OPEN-METEO";
