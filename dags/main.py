@@ -32,7 +32,7 @@ def data_to_other_tables():
                 WHERE customer_id NOT IN (
                     SELECT customer_id
                     FROM customer_ids
-                )
+                );
                 """
 
         result = engine.execute(query)
@@ -47,9 +47,14 @@ def data_to_other_tables():
         connection = snowflake_hook.get_uri()
         engine = create_engine(connection)
 
-        # TODO loop for adding the customer ids to the customer_id table.
+        # md5 purely for practise purposes
         for id in data_from_get_customer_ids:
-            print(id["customer_id"])
+            customer_id = id["customer_id"]
+            query = f"""INSERT INTO customer_ids (customer_id, customer_id_hash)
+                        SELECT $1, MD5($2) FROM VALUES ('{customer_id}', '{customer_id}');
+                        """
+            engine.execute(query)
+        return None
     
 
     task1 = get_customer_ids()
