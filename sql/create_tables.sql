@@ -8,4 +8,9 @@ USE SCHEMA "PUBLIC";
 CREATE TABLE IF NOT EXISTS CUSTOMER_IDS (
     customer_id_hash varchar,
     customer_id varchar
-)
+);
+
+CREATE TABLE IF NOT EXISTS LOCATIONS (
+    location_name_hash varchar,
+    location_name varchar
+);
