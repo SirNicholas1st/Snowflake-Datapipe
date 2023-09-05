@@ -4,6 +4,7 @@ from airflow.operators.python import PythonOperator
 from airflow.contrib.operators.snowflake_operator import SnowflakeOperator
 from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 from sqlalchemy import create_engine
+import logging
 
 default_args = {
     "owner": "SirNicholas1st",
@@ -38,11 +39,16 @@ def data_to_other_tables():
         result = engine.execute(query)
 
         data = [dict(row) for row in result.fetchall()]
+        logging.info(f"Retrieved {len(data)} values.")
 
         return data
     
     @task
     def add_customer_ids(data_from_get_customer_ids: dict):
+        if not len(data_from_get_customer_ids):
+            logging.info(f"No data to insert.")
+            return None
+        
         snowflake_hook = SnowflakeHook(snowflake_conn_id = "Snowflake")
         connection = snowflake_hook.get_uri()
         engine = create_engine(connection)
@@ -54,13 +60,39 @@ def data_to_other_tables():
                         SELECT $1, MD5($2) FROM VALUES ('{customer_id}', '{customer_id}');
                         """
             engine.execute(query)
+            logging.info(f"Inserted {customer_id} into customer_ids.")
         return None
     
+    @task
+    def get_location_data():
+        snowflake_hook = SnowflakeHook(snowflake_conn_id = "Snowflake")
+        connection = snowflake_hook.get_uri()
+        engine = create_engine(connection)
+        query = f"""SELECT DISTINCT(location_name)
+                    FROM weather_data
+                    WHERE location_name NOT IN (
+                        SELECT location_name
+                        FROM locations
+                    );
+                    """
+        result = engine.execute(query)
+        data = [dict(row) for row in result.fetchall()]
+        logging.info(f"Retrieved {len(data)} values.")
+        print(data)
 
-    task1 = get_customer_ids()
+    @task
+    def add_location_data(data_from_get_location_data: dict):
+        pass
+    
+    # customer id related tasks
+    c_task1 = get_customer_ids()
+    c_task2 = add_customer_ids(c_task1)
+    
+    # location data related tasks
+    l_task1 = get_location_data()
+    l_task2 = add_location_data(l_task1)
 
-    task2 = add_customer_ids(task1)
-
-    task1 >> task2
+    c_task1 >> c_task2
+    l_task1
 
 data_to_other_tables()
