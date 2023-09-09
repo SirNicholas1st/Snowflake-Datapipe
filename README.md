@@ -46,4 +46,17 @@ NOTE: S3 accesskeys not in the repo.
 
 # Pipeline description
 
+## Overall architecture 
+
+![overall_architecture](pics/general_architecture.png)
+
+The pipeline works by collecting JSONs sent by the get_data.py and dump_data.py scripts operating in the customer systems in the source s3 bucket. From there a Lambda function parses the data and uploads it to another s3 bucket. After the file lands in the target s3 bucket, SQS sends a message to the snowpipe which then copies the data to a table in Snowflake.
+
+Airflow DAG is scheduled to run every 10 minutes and it spreads the raw ingested data to other tables:
+1. If customerId is not on the customers table it will insert it there.
+2. Same for location.
+3. It also parses the VAR column containing the actual values from the customer and uploads them to corresponding tables.
+
+# Database design
 WIP
+
