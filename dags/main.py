@@ -53,7 +53,8 @@ def data_to_other_tables():
         connection = snowflake_hook.get_uri()
         engine = create_engine(connection)
 
-        # md5 purely for practise purposes
+        # md5 purely for practise purposes and to test out an idea if we have a standard way of forming keys
+        # we dont always have to look for the keyvalue from other tables when inserting rows.
         for id in data_from_get_customer_ids:
             customer_id = id["customer_id"]
             query = f"""INSERT INTO customer_ids (customer_id, customer_id_hash)
@@ -78,12 +79,29 @@ def data_to_other_tables():
         result = engine.execute(query)
         data = [dict(row) for row in result.fetchall()]
         logging.info(f"Retrieved {len(data)} values.")
-        print(data)
+        return data
 
     @task
     def add_location_data(data_from_get_location_data: dict):
-        pass
+        snowflake_hook = SnowflakeHook(snowflake_conn_id = "Snowflake")
+        connection = snowflake_hook.get_uri()
+        engine = create_engine(connection)
+
+        for location_data in data_from_get_location_data:
+            location = location_data["location_name"]
+            query = f"""INSERT INTO locations (location_name, location_name_hash)
+                        SELECT $1, MD5($2) FROM VALUES ('{location}', '{location}')
+                        """
+            engine.execute(query)
+            logging.info(f"Inserted {location} to locations.")
+        return None
     
+    @task 
+    def get_json_data()
+        # TODO, need to figure out how to retreive only rows that are not already processed
+        # TODO create table for the current weather data.
+        pass
+
     # customer id related tasks
     c_task1 = get_customer_ids()
     c_task2 = add_customer_ids(c_task1)
@@ -93,6 +111,6 @@ def data_to_other_tables():
     l_task2 = add_location_data(l_task1)
 
     c_task1 >> c_task2
-    l_task1
+    l_task1 >> l_task2
 
 data_to_other_tables()
