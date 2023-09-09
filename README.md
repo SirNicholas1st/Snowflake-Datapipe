@@ -48,7 +48,7 @@ NOTE: S3 accesskeys not in the repo.
 
 ## Overall architecture 
 
-![overall_architecture](pics/general_architecture.png)
+![overall_architecture](Pics/general_architecture.png)
 
 The pipeline works by collecting JSONs sent by the get_data.py and dump_data.py scripts operating in the customer systems in the source s3 bucket. From there a Lambda function parses the data and uploads it to another s3 bucket. After the file lands in the target s3 bucket, SQS sends a message to the snowpipe which then copies the data to a table in Snowflake.
 
