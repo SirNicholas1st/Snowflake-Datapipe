@@ -36,8 +36,8 @@ LIST @open_meteo_stage;
 
 -- create the table for the json data.
 CREATE OR REPLACE TABLE weather_data (
-    latitude NUMBER,
-    longitude NUMBER,
+    latitude FLOAT,
+    longitude FLOAT,
     generationtime_ms NUMBER,
     utc_offset_seconds NUMBER,
     timezone STRING,
