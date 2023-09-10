@@ -99,10 +99,27 @@ def data_to_other_tables():
         return None
     
     @task 
-    def get_json_data():
-        # TODO, need to figure out how to retreive only rows that are not already processed
-        # TODO create table for the current weather data.
+    def get_current_weather_data():
+        snowflake_hook = SnowflakeHook(snowflake_conn_id = "Snowflake")
+        connection = snowflake_hook.get_uri()
+        engine = create_engine(connection)
+
+        query = f"""SELECT customer_id, location_name, current_weather
+                    FROM weather_data
+                    WHERE processed IS NULL;
+                    """
+        result = engine.execute(query)
+        data = [dict(row) for row in result.fetchall()]
+        logging.info(f"Retrieved {len(data)} rows.")
+        return data
+    
+    @task 
+    def add_current_weather_data(data_from_get_current_weather_data: dict):
+        # TODO add the data retrieved from the snowpipe landing table to the current weather data table
+        # TODO mark the rows processed to processed = true when the data has been added to the current weather data table
         pass
+
+        
 
     # customer id related tasks
     c_task1 = get_customer_ids()
@@ -112,7 +129,12 @@ def data_to_other_tables():
     l_task1 = get_location_data()
     l_task2 = add_location_data(l_task1)
 
+    # actual weather data related tasks
+    a_task1 = get_current_weather_data()
+    a_task2 = add_current_weather_data(a_task1)
+
     c_task1 >> c_task2
     l_task1 >> l_task2
+    a_task1 >> a_task2
 
 data_to_other_tables()
