@@ -69,7 +69,7 @@ def data_to_other_tables():
         snowflake_hook = SnowflakeHook(snowflake_conn_id = "Snowflake")
         connection = snowflake_hook.get_uri()
         engine = create_engine(connection)
-        query = f"""SELECT DISTINCT(location_name)
+        query = f"""SELECT DISTINCT(location_name), latitude, longitude
                     FROM weather_data
                     WHERE location_name NOT IN (
                         SELECT location_name
@@ -89,15 +89,17 @@ def data_to_other_tables():
 
         for location_data in data_from_get_location_data:
             location = location_data["location_name"]
-            query = f"""INSERT INTO locations (location_name, location_name_hash)
-                        SELECT $1, MD5($2) FROM VALUES ('{location}', '{location}')
+            latitude = location_data["latitude"]
+            longitude = location_data["longitude"]
+            query = f"""INSERT INTO locations (location_name, location_name_hash, latitude, longitude)
+                        SELECT $1, MD5($2), $3, $4 FROM VALUES ('{location}', '{location}', {latitude}, {longitude})
                         """
             engine.execute(query)
             logging.info(f"Inserted {location} to locations.")
         return None
     
     @task 
-    def get_json_data()
+    def get_json_data():
         # TODO, need to figure out how to retreive only rows that are not already processed
         # TODO create table for the current weather data.
         pass

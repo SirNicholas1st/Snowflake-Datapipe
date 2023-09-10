@@ -12,5 +12,7 @@ CREATE TABLE IF NOT EXISTS CUSTOMER_IDS (
 
 CREATE TABLE IF NOT EXISTS LOCATIONS (
     location_name_hash varchar,
-    location_name varchar
-);
+    location_name varchar,
+    latitude float,
+    lontitude float);
+
