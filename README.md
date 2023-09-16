@@ -58,5 +58,13 @@ Airflow DAG is scheduled to run every 10 minutes and it spreads the raw ingested
 3. It also parses the VAR column containing the actual values from the customer and uploads them to corresponding tables.
 
 # Database design
-WIP
 
+![dbase_tables](Pics/dbase_tables.png)
+
+* Weather_data is the table where the raw data is ingested by the snowpipe.
+* Customer_ids & Locations tables keep track of the customers and locations in the database. These tables are populated by an Airflow job that inserts data to them from the Weather_data table. No duplicate values will be inserted.
+* The Current_weather table has the actual data from weather_data current_weather var column. This data is parsed and inserted by Airflow.
+
+
+# Downsides and improvement ideas for the system.
+WIP
