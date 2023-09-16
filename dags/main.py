@@ -5,6 +5,7 @@ from airflow.contrib.operators.snowflake_operator import SnowflakeOperator
 from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 from sqlalchemy import create_engine
 import logging
+import json
 
 default_args = {
     "owner": "SirNicholas1st",
@@ -115,9 +116,27 @@ def data_to_other_tables():
     
     @task 
     def add_current_weather_data(data_from_get_current_weather_data: dict):
-        # TODO add the data retrieved from the snowpipe landing table to the current weather data table
+        snowflake_hook = SnowflakeHook(snowflake_conn_id = "Snowflake")
+        connection = snowflake_hook.get_uri()
+        engine = create_engine(connection)
+        for current_weather_data_row in data_from_get_current_weather_data:
+            customer_id = current_weather_data_row["customer_id"]
+            location_name = current_weather_data_row["location_name"]
+            current_weather = json.loads(current_weather_data_row["current_weather"])
+            weather_time = current_weather["time"]
+            is_day = current_weather["is_day"]
+            temperature = current_weather["temperature"]
+            windspeed = current_weather["windspeed"]
+            query = f"""INSERT INTO current_weather (customer_id_hash, location_name_hash, weather_time, is_day, temperature, windspeed)
+                        SELECT MD5($1), MD5($2), $3, $4, $5, $6 FROM VALUES ('{customer_id}', '{location_name}',
+                        '{weather_time}', '{is_day}', {temperature}, {windspeed});
+                   """
+            engine.execute(query)
+            logging.info(f"Inserted the following values to current_weather: {customer_id}, {location_name}, {current_weather}")
+            
         # TODO mark the rows processed to processed = true when the data has been added to the current weather data table
-        pass
+        # or figure out some other way to not insert duplicate information to the table.
+        return None
 
         
 
@@ -133,6 +152,7 @@ def data_to_other_tables():
     a_task1 = get_current_weather_data()
     a_task2 = add_current_weather_data(a_task1)
 
+    # ordering the tasks
     c_task1 >> c_task2
     l_task1 >> l_task2
     a_task1 >> a_task2
