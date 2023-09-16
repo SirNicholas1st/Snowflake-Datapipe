@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS LOCATIONS (
 CREATE TABLE IF NOT EXISTS current_weather (
     customer_id_hash varchar,
     location_name_hash varchar,
-    "time" timestamp,
+    weather_time timestamp,
     is_day boolean,
     temperature float,
     windspeed float);
