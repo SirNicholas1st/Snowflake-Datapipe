@@ -44,7 +44,7 @@ CREATE OR REPLACE TABLE weather_data (
     timezone_abbreviation STRING,
     elevation NUMBER,
     current_weather VARIANT,
-    "Timestamp" TIMESTAMP_NTZ,
+    fetch_Timestamp TIMESTAMP_NTZ,
     customer_id STRING,
     Location_name STRING,
     processed BOOLEAN
