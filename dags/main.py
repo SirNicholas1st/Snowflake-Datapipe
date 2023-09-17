@@ -80,6 +80,7 @@ def data_to_other_tables():
         result = engine.execute(query)
         data = [dict(row) for row in result.fetchall()]
         logging.info(f"Retrieved {len(data)} values.")
+
         return data
 
     @task
@@ -97,6 +98,7 @@ def data_to_other_tables():
                         """
             engine.execute(query)
             logging.info(f"Inserted {location} to locations.")
+
         return None
     
     @task 
@@ -105,13 +107,14 @@ def data_to_other_tables():
         connection = snowflake_hook.get_uri()
         engine = create_engine(connection)
 
-        query = f"""SELECT customer_id, location_name, current_weather
+        query = f"""SELECT customer_id, location_name, current_weather, fetch_timestamp
                     FROM weather_data
                     WHERE processed IS NULL;
                     """
         result = engine.execute(query)
         data = [dict(row) for row in result.fetchall()]
         logging.info(f"Retrieved {len(data)} rows.")
+
         return data
     
     @task 
@@ -122,6 +125,7 @@ def data_to_other_tables():
         for current_weather_data_row in data_from_get_current_weather_data:
             customer_id = current_weather_data_row["customer_id"]
             location_name = current_weather_data_row["location_name"]
+            fetch_timestamp = current_weather_data_row["fetch_timestamp"]
             current_weather = json.loads(current_weather_data_row["current_weather"])
             weather_time = current_weather["time"]
             is_day = current_weather["is_day"]
@@ -134,11 +138,28 @@ def data_to_other_tables():
             engine.execute(query)
             logging.info(f"Inserted the following values to current_weather: {customer_id}, {location_name}, {current_weather}")
             
-        # TODO mark the rows processed to processed = true when the data has been added to the current weather data table
-        # or figure out some other way to not insert duplicate information to the table.
         return None
+    
+    @task
+    def mark_rows_as_processed(data_from_get_current_weather_data: dict):
+        snowflake_hook = SnowflakeHook(snowflake_conn_id = "Snowflake")
+        connection = snowflake_hook.get_uri()
+        engine = create_engine(connection)
+        for current_weather_data_row in data_from_get_current_weather_data:
+            customer_id = current_weather_data_row["customer_id"]
+            location_name = current_weather_data_row["location_name"]
+            fetch_timestamp = current_weather_data_row["fetch_timestamp"]
+            query = f"""UPDATE weather_data
+                        SET processed = 1
+                        WHERE 1 = 1
+                        AND customer_id = '{customer_id}'
+                        AND location_name = '{location_name}'
+                        AND fetch_timestamp = '{fetch_timestamp}';
+                    """
+            engine.execute(query)
+            logging.info(f"Set row with customer_id: {customer_id}, location_name: {location_name}, timestamp: {fetch_timestamp} to processed.")
 
-        
+        return None
 
     # customer id related tasks
     c_task1 = get_customer_ids()
@@ -151,10 +172,11 @@ def data_to_other_tables():
     # actual weather data related tasks
     a_task1 = get_current_weather_data()
     a_task2 = add_current_weather_data(a_task1)
+    a_task3 = mark_rows_as_processed(a_task1)
 
     # ordering the tasks
     c_task1 >> c_task2
     l_task1 >> l_task2
-    a_task1 >> a_task2
+    a_task1 >> a_task2 >> a_task3
 
 data_to_other_tables()
