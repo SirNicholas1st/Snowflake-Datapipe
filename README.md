@@ -1,6 +1,6 @@
 # Snowflake-Datapipe
 
-The goal is to build an example of what a simple data collection pipeline which collects data from multiple customers and uploads them to Snowflake. The OpenMeteo Api acts as the "customer system" in this case.
+The goal was to build an example of what a simple data collection pipeline which collects data from multiple customers and uploads them to Snowflake. The OpenMeteo Api acts as the "customer system" in this case.
 
 # Project overview
 
@@ -55,7 +55,11 @@ The pipeline works by collecting JSONs sent by the get_data.py and dump_data.py 
 Airflow DAG is scheduled to run every 10 minutes and it spreads the raw ingested data to other tables:
 1. If customerId is not on the customers table it will insert it there.
 2. Same for location.
-3. It also parses the VAR column containing the actual values from the customer and uploads them to corresponding tables.
+3. It also parses the VAR column containing the actual values from the customer and uploads them to current_weather table.
+4. Finally the DAG marks the row from weather_table to processed to avoid inserting duplicate rows to current_weather table.
+
+DAG tasks:
+![dag_tasks](Pics/DAG_tasks.png)
 
 # Database design
 
@@ -67,4 +71,11 @@ Airflow DAG is scheduled to run every 10 minutes and it spreads the raw ingested
 
 
 # Downsides and improvement ideas for the system.
-WIP
+
+## Data ingestion
+First and foremost, at the moment the customer specific AWS keys are stored in raw CSV files. This means if this approach would be used in customer systems the raw CSV files would need to placed in their system. The customer or a another party with the access to system could take the keys and use them to flood the s3 bucket if they so wished. In short this approach is not viable for anything else than personal projects, for production use maybe the approach could be modified to use winSCP and authenticate with SSH.
+
+## Data from staging to fact tables
+Airflow works pretty well in this case where the dataflow is pretty small. But lets say the the dataflow increased to 10000 times to the current one. Airflow might still be able to handle adding the data to the fact tables but it would also generate extra costs since the logic is that it checks if new values are added by querying the database. 
+
+A better approach would be using somekind of change data capture (CDC) to capture the changes in the staging table and act upon those changes. Maybe Snowflake streams could be used for this purpose?
